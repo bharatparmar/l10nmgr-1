@@ -34,6 +34,9 @@
 			<trans-unit id="general.action.export.xml.title" xml:space="preserve">
 				<source>XML export/import</source>
 			</trans-unit>
+			<trans-unit id="general.action.export.xlf.title" xml:space="preserve">
+				<source>XLF export</source>
+			</trans-unit>
 			<trans-unit id="general.action.export.xml.button.title" xml:space="preserve">
 				<source>Export</source>
 			</trans-unit>

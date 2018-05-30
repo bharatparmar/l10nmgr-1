@@ -36,7 +36,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * @package TYPO3
  * @subpackage tx_l10nmgr
  */
-class CatXmlView extends AbstractExportView
+class CatXlfView extends AbstractExportView
 {
     /**
      * @var integer $forcedSourceLanguage Overwrite the default language uid with the desired language to export
@@ -75,8 +75,10 @@ class CatXmlView extends AbstractExportView
         $output = array();
         $targetIso = '';
         // Traverse the structure and generate XML output:
+
         foreach ($accum as $pId => $page) {
-            $output[] = "\t" . '<pageGrp id="' . $pId . '" sourceUrl="' . GeneralUtility::getIndpEnv("TYPO3_SITE_URL") . 'index.php?id=' . $pId . '">' . "\n";
+
+
             foreach ($accum[$pId]['items'] as $table => $elements) {
                 foreach ($elements as $elementUid => $data) {
                     $targetIso = '';
@@ -86,6 +88,7 @@ class CatXmlView extends AbstractExportView
                     if (is_array($data['fields'])) {
                         foreach ($data['fields'] as $key => $tData) {
                             if (is_array($tData)) {
+
                                 $noChangeFlag = !strcmp(trim($tData['diffDefaultValue']), trim($tData['defaultValue']));
                                 if (!$this->modeOnlyChanged || !$noChangeFlag) {
                                     // @DP: Why this check?
@@ -95,6 +98,8 @@ class CatXmlView extends AbstractExportView
                                         } else {
                                             $dataForTranslation = $tData['defaultValue'];
                                         }
+                                        $translationValue = $tData['translationValue'];
+
                                         $_isTranformedXML = false;
                                         // Following checks are not enough! Fields that could be transformed to be XML conform are not transformed! textpic fields are not isRTE=1!!! No idea why...
                                         //DZ 2010-09-08
@@ -111,9 +116,18 @@ class CatXmlView extends AbstractExportView
                                                 $_isTranformedXML = true;
                                                 $dataForTranslation = $dataForTranslationTranformed;
                                             }
+                                            $translationValueTranformed = $xmlTool->RTE2XML($translationValue);
+                                            if ($translationValueTranformed !== false) {
+                                                $_isTranformedXML = true;
+                                                $translationValue = $translationValueTranformed;
+                                            }
+
                                         }
                                         if ($_isTranformedXML) {
-                                            $output[] = "\t\t" . '<data table="' . $table . '" elementUid="' . $elementUid . '" key="' . $key . '" transformations="1">' . $dataForTranslation . '</data>' . "\n";
+                                            $output[] = "\t" . '<trans-unit id="' . $table . '_' . $elementUid . '_' . $key . '">' . "\n";
+                                            $output[] = "\t\t" . '<source>'.$dataForTranslation . '</source>' . "\n";
+                                            $output[] = "\t\t" . '<target>'.$translationValue . '</target>' . "\n";
+                                            $output[] = "\t" . '</trans-unit>' . "\r";
                                         } else {
                                             // Substitute HTML entities with actual characters (we use UTF-8 anyway:-) but leave quotes untouched
                                             $dataForTranslation = html_entity_decode($dataForTranslation, ENT_NOQUOTES,
@@ -126,16 +140,40 @@ class CatXmlView extends AbstractExportView
                                             $dataForTranslation = str_replace(' > ', ' &gt; ', $dataForTranslation);
                                             $dataForTranslation = str_replace('<br>', '<br/>', $dataForTranslation);
                                             $dataForTranslation = str_replace('<hr>', '<hr/>', $dataForTranslation);
+
+
+                                            // Substitute HTML entities with actual characters (we use UTF-8 anyway:-) but leave quotes untouched
+                                            $translationValue = html_entity_decode($translationValue, ENT_NOQUOTES,
+                                                'UTF-8');
+                                            //Substitute & with &amp; in non-RTE fields
+                                            $translationValue = preg_replace('/&(?!(amp|nbsp|quot|apos|lt|gt);)/',
+                                                '&amp;', $translationValue);
+                                            //Substitute > and < in non-RTE fields
+                                            $translationValue = str_replace(' < ', ' &lt; ', $translationValue);
+                                            $translationValue = str_replace(' > ', ' &gt; ', $translationValue);
+                                            $translationValue = str_replace('<br>', '<br/>', $translationValue);
+                                            $translationValue = str_replace('<hr>', '<hr/>', $translationValue);
                                             $params = $this->getBackendUser()->getModuleData('l10nmgr/cm1/prefs',
                                                 'prefs');
                                             if ($params['utf8'] == '1') {
                                                 $dataForTranslation = Utf8Tools::utf8_bad_strip($dataForTranslation);
+                                                $translationValue = Utf8Tools::utf8_bad_strip($translationValue);
                                             }
                                             if ($xmlTool->isValidXMLString($dataForTranslation)) {
-                                                $output[] = "\t\t" . '<data table="' . $table . '" elementUid="' . $elementUid . '" key="' . $key . '">' . $dataForTranslation . '</data>' . "\n";
+
+                                                $output[] = "\t" . '<trans-unit id="' . $table . '_' . $elementUid . '_' . $key . '">' . "\n";
+                                                $output[] = "\t\t" . '<source>'.$dataForTranslation . '</source>' . "\n";
+                                                if ($xmlTool->isValidXMLString($translationValue)) {
+                                                    $output[] = "\t\t" . '<target>'.$translationValue . '</target>' . "\n";
+                                                }
+                                                $output[] = "\t" . '</trans-unit>' . "\r";
                                             } else {
                                                 if ($params['noxmlcheck'] == '1') {
-                                                    $output[] = "\t\t" . '<data table="' . $table . '" elementUid="' . $elementUid . '" key="' . $key . '"><![CDATA[' . $dataForTranslation . ']]></data>' . "\n";
+
+                                                    $output[] = "\t" . '<trans-unit id="' . $table . '_' . $elementUid . '_' . $key . '">' . "\n";
+                                                    $output[] = "\t\t" . '<source><![CDATA[' . $dataForTranslation . ']]></source>' . "\n";
+                                                    $output[] = "\t\t" . '<target>'.$translationValue . '</target>' . "\n";
+                                                    $output[] = "\t" . '</trans-unit>' . "\r";
                                                 } else {
                                                     $this->setInternalMessage($this->getLanguageService()->getLL('export.process.error.invalid.message'),
                                                         $elementUid . '/' . $table . '/' . $key);
@@ -152,7 +190,7 @@ class CatXmlView extends AbstractExportView
                     }
                 }
             }
-            $output[] = "\t" . '</pageGrp>' . "\r";
+
         }
         // Provide a hook for specific manipulations before building the actual XML
         if (is_array($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['l10nmgr']['exportCatXmlPreProcess'])) {
@@ -167,25 +205,16 @@ class CatXmlView extends AbstractExportView
             $staticLangArr = BackendUtility::getRecord('static_languages',
                 $this->l10ncfgObj->getData('sourceLangStaticId'), 'lg_iso_2');
         }
-        $XML = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $XML .= '<!DOCTYPE TYPO3L10N [ <!ENTITY nbsp " "> ]>' . "\n" . '<TYPO3L10N>' . "\n";
-        $XML .= "\t" . '<head>' . "\n";
-        $XML .= "\t\t" . '<t3_l10ncfg>' . $this->l10ncfgObj->getData('uid') . '</t3_l10ncfg>' . "\n";
-        $XML .= "\t\t" . '<t3_sysLang>' . $sysLang . '</t3_sysLang>' . "\n";
-        $XML .= "\t\t" . '<t3_sourceLang>' . $staticLangArr['lg_iso_2'] . '</t3_sourceLang>' . "\n";
-        $XML .= "\t\t" . '<t3_targetLang>' . $targetIso . '</t3_targetLang>' . "\n";
-        $XML .= "\t\t" . '<t3_baseURL>' . GeneralUtility::getIndpEnv("TYPO3_SITE_URL") . '</t3_baseURL>' . "\n";
-        $XML .= "\t\t" . '<t3_workspaceId>' . $this->getBackendUser()->workspace . '</t3_workspaceId>' . "\n";
-        $XML .= "\t\t" . '<t3_count>' . $accumObj->getFieldCount() . '</t3_count>' . "\n";
-        $XML .= "\t\t" . '<t3_wordCount>' . $accumObj->getWordCount() . '</t3_wordCount>' . "\n";
-        $XML .= "\t\t" . '<t3_internal>' . "\r\t" . $this->renderInternalMessage() . "\t\t" . '</t3_internal>' . "\n";
-        $XML .= "\t\t" . '<t3_formatVersion>' . L10NMGR_FILEVERSION . '</t3_formatVersion>' . "\n";
-        $XML .= "\t\t" . '<t3_l10nmgrVersion>' . L10NMGR_VERSION . '</t3_l10nmgrVersion>' . "\n";
-        $XML .= $this->additionalHeaderData();
-        $XML .= "\t" . '</head>' . "\n";
+        $XML = '<?xml version="1.0" encoding="utf-8" standalone="yes"?>' . "\n";
+        $XML .= '<xliff version="1.0">' . "\n";
+        $XML .= "\t" .'<file source-language="'.$staticLangArr['lg_iso_2'].'" target-language="' . $targetIso . '" datatype="plaintext" original="messages" date="2014-06-02T11:48:25Z" product-name="TYPO3_CMS">'."\n";
+        $XML .= "\t\t" . '<header />' . "\n";
+        $XML .= "\t\t" . '<body>' . "\n";
+        $XML .= "\t\t" . '</body>' . "\n";
         $XML .= implode('', $output) . "\n";
-        $XML .= "</TYPO3L10N>";
-        return $this->saveExportFile($XML);
+        $XML .= "\t" ."</file>" . "\n";
+        $XML .= "</xliff>";
+        return $this->saveExportFile($XML,'xlf');
     }
 
     /**

@@ -175,10 +175,10 @@ abstract class AbstractExportView
      *
      * @return string File name
      */
-    public function getFilename()
+    public function getFilename($fileExt = 'xml')
     {
         if (empty($this->filename)) {
-            $this->setFilename();
+            $this->setFilename($fileExt);
         }
         return $this->filename;
     }
@@ -188,7 +188,7 @@ abstract class AbstractExportView
      *
      * @return void
      */
-    public function setFilename()
+    public function setFilename($fileExt = 'xml')
     {
         $sourceLang = '';
         $targetLang = '';
@@ -219,7 +219,7 @@ abstract class AbstractExportView
         }
         $fileNamePrefix = (trim($this->l10ncfgObj->getData('filenameprefix'))) ? $this->l10ncfgObj->getData('filenameprefix') . '_' . $fileType : $fileType;
         // Setting filename:
-        $filename = $fileNamePrefix . '_' . $sourceLang . '_to_' . $targetLang . '_' . date('dmy-His') . '.xml';
+        $filename = $fileNamePrefix . '_' . $sourceLang . '_to_' . $targetLang . '_' . date('dmy-His') . '.'. $fileExt;
         $this->filename = $filename;
     }
 
@@ -378,9 +378,10 @@ abstract class AbstractExportView
      *
      * @return string $fileExportName The complete filename
      */
-    public function saveExportFile($fileContent)
+    public function saveExportFile($fileContent,$fileExt='xml')
     {
-        $fileExportName = 'uploads/tx_l10nmgr/jobs/out/' . $this->getFilename();
+        $fileExportName = 'uploads/tx_l10nmgr/jobs/out/' . $this->getFilename($fileExt);
+
         GeneralUtility::writeFile(PATH_site . $fileExportName, $fileContent);
         return $fileExportName;
     }
