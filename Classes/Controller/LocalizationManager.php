@@ -523,7 +523,7 @@ return false;
                 $viewClass->setModeNoHidden();
             }
             //Check the export
-            if ($this->MOD_SETTINGS['check_exports'] && !$viewClass->checkExports()) {
+            if (GeneralUtility::_POST('check_exports') && !$viewClass->checkExports()) {
                 /** @var FlashMessage $flashMessage */
                 $flashMessage = GeneralUtility::makeInstance(FlashMessage::class,
                     '###MESSAGE###',
@@ -719,8 +719,9 @@ return false;
             if ($this->MOD_SETTINGS['noHidden']) {
                 $viewClass->setModeNoHidden();
             }
+
             // Check the export
-            if ($this->MOD_SETTINGS['check_exports'] && !$viewClass->checkExports()) {
+            if (GeneralUtility::_POST('check_exports') && !$viewClass->checkExports()) {
                 /** @var FlashMessage $flashMessage */
                 $flashMessage = GeneralUtility::makeInstance(FlashMessage::class,
                     '###MESSAGE###',
@@ -861,8 +862,9 @@ return false;
             if ($this->MOD_SETTINGS['noHidden']) {
                 $viewClass->setModeNoHidden();
             }
+
             // Check the export
-            if ($this->MOD_SETTINGS['check_exports'] && !$viewClass->checkExports()) {
+            if (GeneralUtility::_POST('check_exports') && !$viewClass->checkExports()) {
                 /** @var FlashMessage $flashMessage */
                 $flashMessage = GeneralUtility::makeInstance(FlashMessage::class,
                     '###MESSAGE###',
